@@ -1,0 +1,48 @@
+# TODO
+
+Cola de trabajo del lab. Solo tareas pendientes. Al completar y verificar una tarea, se elimina de aquí y se registra en `avances.md`.
+
+## Preparación
+
+- [ ] Crear cuenta de Kaggle, verificar el teléfono y anotar la cuota semanal real de GPU y TPU (Settings).
+- [ ] Comprobar si la cuenta necesita verificación de identidad (Persona) para usar TPU.
+- [ ] Instalar en el Mac `llama.cpp` y `ollama` con Homebrew y comprobar `cloudflared --version`.
+- [ ] Preparar los dos prompts de benchmark (corto de ~200 tokens y largo de ~30.000 tokens).
+
+## Fase 0: local en el Mac
+
+- [ ] Levantar `llama-server` con Qwen3-4B Q4_K_M protegido con API key y consultarlo con `curl`.
+- [ ] Medir prefill y decode con `llama-bench` y con el campo `timings` de las respuestas.
+- [ ] Repetir con Qwen3-8B en Q4_K_M y Q8_0 y comparar con la fórmula de ancho de banda.
+- [ ] Servir el mismo modelo con Ollama y comparar con llama.cpp.
+- [ ] Medir el TTFT con el prompt largo.
+- [ ] (Opcional) Convertir y cuantizar un modelo pequeño con `convert_hf_to_gguf.py` y `llama-quantize`.
+- [ ] Exponer el servidor local con un Quick Tunnel y probarlo desde fuera.
+
+## Fase 1: Kaggle 2x T4
+
+- [ ] Notebook con GPU T4 x2: `nvidia-smi` y tiempo de arranque en frío.
+- [ ] Servir Qwen3.8-27B UD-Q4_K_M con Ollama.
+- [ ] Servir el mismo GGUF con `llama-server` (CUDA) y observar el reparto por capas en `nvidia-smi`.
+- [ ] Comparar `--split-mode layer` frente a `--split-mode row`.
+- [ ] Ejecutar los benchmarks y contrastar con las cifras del vídeo (16 tok/s, 325 tok/s, 92 s).
+- [ ] Exponer `llama-server` con Quick Tunnel, provocar un 524 a propósito y comprobar si el streaming sobrevive.
+- [ ] (Opcional) vLLM con tensor parallel 2 en un modelo que quepa en fp16.
+
+## Fase 2: Kaggle TPU v5e-8
+
+- [ ] Leer el código de kaggle-tpu-lab (`qwen38-27b/kernel/` y `launch.py`).
+- [ ] Primera ejecución por la vía notebook.
+- [ ] Segunda ejecución por terminal con `launch.py serve --keepalive-min 90`.
+- [ ] Ejecutar los benchmarks y contrastar con las cifras del repo (130 tok/s, 10.300 tok/s, 22 min).
+- [ ] Conectar un agente de programación para una tarea corta y no sensible.
+
+## Fase 3: comparación
+
+- [ ] Ejecutar los mismos prompts contra un proveedor alojado (OpenRouter).
+- [ ] Rellenar la tabla de resultados y calcular el coste efectivo por millón de tokens.
+- [ ] Redactar las conclusiones en `avances.md`.
+
+## Publicación
+
+- [ ] Inicializar el repositorio Git y publicarlo en GitHub.

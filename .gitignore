@@ -1,0 +1,15 @@
+# Credentials
+kaggle.json
+.env
+
+# Model weights and large artifacts
+*.gguf
+*.safetensors
+models/
+
+# Python
+.venv/
+__pycache__/
+
+# macOS
+.DS_Store
