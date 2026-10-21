@@ -13,3 +13,6 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Local secrets (API keys for test servers)
+.secrets/

@@ -6,16 +6,13 @@ Cola de trabajo del lab. Solo tareas pendientes. Al completar y verificar una ta
 
 - [ ] Crear cuenta de Kaggle, verificar el teléfono y anotar la cuota semanal real de GPU y TPU (Settings).
 - [ ] Comprobar si la cuenta necesita verificación de identidad (Persona) para usar TPU.
-- [ ] Instalar en el Mac `llama.cpp` y `ollama` con Homebrew y comprobar `cloudflared --version`.
-- [ ] Preparar los dos prompts de benchmark (corto de ~200 tokens y largo de ~30.000 tokens).
+- [ ] Instalar `ollama` con Homebrew y comprobar `cloudflared --version`.
 
 ## Fase 0: local en el Mac
 
-- [ ] Levantar `llama-server` con Qwen3-4B Q4_K_M protegido con API key y consultarlo con `curl`.
-- [ ] Medir prefill y decode con `llama-bench` y con el campo `timings` de las respuestas.
 - [ ] Repetir con Qwen3-8B en Q4_K_M y Q8_0 y comparar con la fórmula de ancho de banda.
 - [ ] Servir el mismo modelo con Ollama y comparar con llama.cpp.
-- [ ] Medir el TTFT con el prompt largo.
+- [ ] Probar Qwen3-4B con el razonamiento activado y medir cuántos tokens de "thinking" añade.
 - [ ] (Opcional) Convertir y cuantizar un modelo pequeño con `convert_hf_to_gguf.py` y `llama-quantize`.
 - [ ] Exponer el servidor local con un Quick Tunnel y probarlo desde fuera.
 

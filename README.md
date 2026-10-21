@@ -106,6 +106,7 @@ Each phase uses the same two benchmark prompts so results are comparable:
 ### Phase 0: truly local on the Mac
 
 Goal: learn the engines and the measurements for free, with no network in the loop.
+Step-by-step guide and measured results: [docs/phase-0-local.md](docs/phase-0-local.md).
 
 1. Run `llama-server` with Qwen3-4B Q4_K_M, protected by an API key, and query it with
    `curl` through the OpenAI-compatible `/v1/chat/completions` endpoint.
@@ -244,6 +245,13 @@ curl -s http://localhost:8080/v1/chat/completions -H "Authorization: Bearer chan
 
 Look at the `timings` object in the response: `prompt_per_second` is prefill speed,
 `predicted_per_second` is decode speed.
+
+For repeatable measurements against any OpenAI-compatible endpoint (this Mac, Kaggle or a
+hosted provider), use `scripts/bench.py` (standard library only):
+
+```bash
+python3 scripts/bench.py --base-url http://localhost:8080/v1 --key-file .secrets/llama-api-key --prompt long --no-think
+```
 
 ## Sources
 
