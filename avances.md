@@ -2,6 +2,16 @@
 
 Cuaderno de bitácora del lab. Orden cronológico inverso (lo más reciente arriba). Las entradas existentes no se modifican.
 
+## 2026-10-21: fase 0, Qwen3-8B en Q4_K_M y Q8_0 (modo guiado)
+
+- Primera sesión en modo guiado: el usuario ejecuta los comandos en el panel Terminal y Claude explica la herramienta, los parámetros y la salida.
+- Qwen3-8B Q4_K_M (5,03 GB, contexto 16k): decode 23,6 tok/s. Prompt largo de 14.190 tokens: TTFT 91,7 s y decode 17,2 tok/s.
+- Qwen3-8B Q8_0 (8,71 GB, contexto 4k para que quepa en la memoria de la GPU): decode 20,1 tok/s.
+- `llama-bench` (pp512 / tg128): Q4_K_M 224 / 24,5 tok/s y Q8_0 245 / 20,4 tok/s.
+- Lecciones: el decode no escala de forma lineal con el tamaño (hay un coste fijo por token), Q8_0 aprovecha el bus mucho mejor que Q4_K_M en el M1 Pro (~87% frente a ~60%), cada formato gana en una fase (prefill Q8, decode Q4) y la caché KV se lee en cada token generado (16 ms extra a 14k de contexto).
+- Probada la web de chat de llama-server con API key y razonamiento activo, y observada la reutilización de caché por LCP en una conversación.
+- Detalle completo en `docs/phase-0-local.md`, paso 7.
+
 ## 2026-10-21: fase 0, Qwen3-4B en local con llama.cpp
 
 - Instalado `llama.cpp` 0.7.0 con Homebrew (backend Metal).

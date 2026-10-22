@@ -10,7 +10,7 @@ Cola de trabajo del lab. Solo tareas pendientes. Al completar y verificar una ta
 
 ## Fase 0: local en el Mac
 
-- [ ] Repetir con Qwen3-8B en Q4_K_M y Q8_0 y comparar con la fórmula de ancho de banda.
+- [ ] (Opcional) Comprobar si la primera petición tras 10 minutos de inactividad tiene un prefill más lento (hipótesis: la GPU baja su frecuencia en reposo).
 - [ ] Servir el mismo modelo con Ollama y comparar con llama.cpp.
 - [ ] Probar Qwen3-4B con el razonamiento activado y medir cuántos tokens de "thinking" añade.
 - [ ] (Opcional) Convertir y cuantizar un modelo pequeño con `convert_hf_to_gguf.py` y `llama-quantize`.

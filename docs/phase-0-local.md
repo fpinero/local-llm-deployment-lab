@@ -139,3 +139,68 @@ Q4_K_M (2.32 GiB), context 32k, thinking disabled for the benchmark runs.
 - **Flash Attention matters at long context.** Little difference with an empty context,
   but 2.5x faster decode at 16k depth. `llama-server` uses `auto`, which enabled it here.
 - **The API key works.** A request without the key gets HTTP 401.
+
+## Step 7: a bigger model and a lighter quantization (Qwen3-8B)
+
+Run by the user in guided mode on 2026-10-21. The server is restarted for each file:
+
+```bash
+llama-server -hf Qwen/Qwen3-8B-GGUF:Q4_K_M -c 16384 --port 8080 --api-key-file .secrets/llama-api-key
+llama-server -hf Qwen/Qwen3-8B-GGUF:Q8_0 -c 4096 --port 8080 --api-key-file .secrets/llama-api-key
+```
+
+The context is reduced for Q8_0 on purpose: macOS gives the GPU roughly 10 to 11 GB of the
+16 GB, and 8.7 GB of weights plus a 16k KV cache (about 2.3 GB) do not fit. Same dilemma as
+on the T4s: either the model fits or the context does.
+
+Synthetic comparison (stop the server first):
+
+```bash
+D=$(echo ~/.cache/huggingface/hub/models--Qwen--Qwen3-8B-GGUF/snapshots/*)
+llama-bench -m $D/Qwen3-8B-Q4_K_M.gguf -m $D/Qwen3-8B-Q8_0.gguf -p 512 -n 128 -r 3
+```
+
+### Results
+
+| Model | File | Decode (`bench.py`, short) | Effective bandwidth | pp512 | tg128 |
+|---|---|---|---|---|---|
+| Qwen3-4B Q4_K_M | 2.50 GB | 39.1 tok/s | ~98 GB/s | 414 tok/s | 42.4 tok/s |
+| Qwen3-8B Q4_K_M | 5.03 GB | 23.6 tok/s | ~119 GB/s | 224 tok/s | 24.5 tok/s |
+| Qwen3-8B Q8_0 | 8.71 GB | 20.1 tok/s | ~175 GB/s | 245 tok/s | 20.4 tok/s |
+
+Long prompt with Qwen3-8B Q4_K_M (14,190 tokens): TTFT 91.7 s, decode 17.2 tok/s. The same
+size took about 60 s on the 4B.
+
+### What the numbers teach
+
+- **Twice the size is not half the decode speed.** Every token has a fixed cost (kernel
+  launches, sampling, HTTP) on top of reading the weights. Small models waste more of the
+  memory bus, so bigger models get closer to the bandwidth ceiling.
+- **The quantization format changes how well the bus is used.** Q8_0 is trivial to
+  dequantize and reaches about 87% of the ~200 GB/s ceiling. Q4_K_M needs more arithmetic
+  to unpack and stays near 60% on the M1 Pro. Result: Q8_0 weighs 73% more but is only 15%
+  slower at decode.
+- **Each format wins one phase.** Prefill is compute-bound, so the cheaper dequantization
+  of Q8_0 wins (245 vs 224 tok/s). Decode is memory-bound, so fewer bytes win (Q4_K_M,
+  24.5 vs 20.4 tok/s).
+- **Prefill scales with parameters at short context, less at long context.** pp512 ratio
+  4B/8B is 0.54, close to the parameter ratio of 0.49. With 14k tokens the 8B is only 1.5x
+  slower than the 4B, because the attention part costs the same in both: same layer count,
+  same KV heads and head size.
+- **The KV cache is read on every generated token.** 8B decode goes from 42.4 ms per token
+  (empty context) to 58.3 ms (14k context). The extra 16 ms match reading about 2 GB of KV
+  cache (14,190 tokens x ~144 KB) at ~120 GB/s.
+- **91.7 s for a 14k prompt** leaves 8 s of margin before the 100 s Quick Tunnel cut, the
+  same margin the video describes for the T4s, with a prompt half the size.
+
+### Web chat observations
+
+- The built-in chat at `http://localhost:8080` asks for the API key. Copy it without
+  printing it: `pbcopy < .secrets/llama-api-key`.
+- With thinking on, a trivial question produced 281 output tokens, of which only about 60
+  were the visible answer.
+- In a conversation, the server log shows `selected slot by LCP similarity ... f_keep`. The
+  history is reused from the cache and only the new message is prefilled. The Qwen3 template
+  drops previous reasoning from the history, so that part of the cache is discarded.
+- llama.cpp log levels: `I` info, `W` warning (shown in red by the terminal), `E` error. The
+  `control-looking token` warning is harmless metadata cleanup.
