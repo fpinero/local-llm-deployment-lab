@@ -349,6 +349,7 @@ washing.
 | Model | Correct | Output tokens per answer | Time per answer |
 |---|---|---|---|
 | Qwen3-4B Q4_K_M (Ollama, 1 run) | 0/1 | 531 | 14 s |
+| Qwen3-4B Q4_K_M (llama-server from the external disk, 5 runs) | 0/5 (run 5 could not be judged, see below) | 1,390 to 2,224 | 35 to 59 s |
 | Qwen3-8B Q4_K_M | 2/5 | 693 to 3,498 | 31 to 156 s |
 | Qwen3-8B Q8_0 | 0/5 to 1/5 (run 5 states driving is the only option, then calls it inefficient) | 1,017 to 2,960 | 52 to 150 s |
 
@@ -367,6 +368,12 @@ washing.
 - **Same model, different paths.** Tiny numerical differences between quantizations change
   token probabilities; one different token early in the reasoning sends the rest down a
   different path.
+- **Size shows, within the limits of the sample.** 8B: 2 or 3 correct out of 10. 4B: 0 out
+  of 6. Consistent with theory, not a firm proof. The 4B also reasons shorter (never above
+  about 2,200 tokens) and invents facts with confidence (150 m "about 1/4 of a mile").
+- **Look at the end of the answer.** These models list pros and cons first and conclude
+  last. The first version of `ask.py` showed only the first 400 characters, so one 4B answer
+  could not be judged. It now prints both ends of long answers.
 
 ## Model storage
 
@@ -393,3 +400,6 @@ Notes:
   memory pressure evicts pages.
 - Freed space may not show up immediately in `df` while an APFS (Time Machine) local
   snapshot still references the deleted blocks. macOS releases it on its own.
+- Stop the server before deleting its model. `rm` removes the name, not the data: a running
+  llama-server kept 8.7 GB of a deleted Q8_0 file allocated until it exited. `lsof -p <pid>`
+  shows such open files.

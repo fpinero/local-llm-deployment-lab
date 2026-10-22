@@ -56,7 +56,7 @@ def main():
     p.add_argument("--top-p", type=float, default=0.95)
     p.add_argument("--top-k", type=int, default=20)
     p.add_argument("--max-tokens", type=int, default=4096)
-    p.add_argument("--answer-chars", type=int, default=400, help="characters of each answer to show")
+    p.add_argument("--answer-chars", type=int, default=400, help="characters shown from each end of an answer")
     p.add_argument("--timeout", type=float, default=600)
     args = p.parse_args()
 
@@ -79,7 +79,10 @@ def main():
         reasoning = msg.get("reasoning_content") or msg.get("reasoning") or ""
         tokens = body.get("usage", {}).get("completion_tokens")
         print(f"--- run {i}/{args.runs}: {tokens} output tokens, {len(reasoning)} reasoning chars, {elapsed:.1f} s")
-        print(answer[: args.answer_chars] + ("..." if len(answer) > args.answer_chars else ""))
+        # Models often put the recommendation at the end, so show both ends of long answers.
+        if len(answer) > 2 * args.answer_chars:
+            answer = answer[: args.answer_chars] + " [...] " + answer[-args.answer_chars :]
+        print(answer)
         print()
 
 

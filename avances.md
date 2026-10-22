@@ -2,6 +2,15 @@
 
 Cuaderno de bitácora del lab. Orden cronológico inverso (lo más reciente arriba). Las entradas existentes no se modifican.
 
+## 2026-10-22: fase 0, prueba de control con Qwen3-4B desde el disco externo (modo guiado)
+
+- Primer arranque con `-m /Volumes/Ext1Tb/models/Qwen3-4B-Q4_K_M.gguf`: funciona sin descarga ni caché.
+- Pregunta del lavadero, 5 intentos: 0/5 (el intento 5 no se pudo juzgar porque `ask.py` solo mostraba el principio de la respuesta). De 1.390 a 2.224 tokens y de 35 a 59 s por respuesta. Un intento inventa que 150 m son "un cuarto de milla".
+- Comparación final: 4B 0/6, 8B entre 2 y 3 de 10 (Q4_K_M y Q8_0 juntos). Coherente con la teoría, sin ser una prueba firme por el tamaño de la muestra.
+- `scripts/ask.py` ahora muestra el principio y el final de las respuestas largas. Probado contra un servidor falso local.
+- Lección de disco: el llama-server del Q8_0 seguía abierto tras el `rm -rf` y retenía 8,7 GB de un archivo borrado (detectado con `lsof`). Al pararlo, el disco pasó de 32 a 41 GiB libres.
+- El razonamiento del Qwen3-4B queda medido con esta prueba: entre 1.390 y 2.224 tokens por respuesta, frente a unos 60 tokens de respuesta visible.
+
 ## 2026-10-22: fase 0, evaluación de razonamiento y almacenamiento externo (modo guiado)
 
 - Creado `scripts/ask.py`: repite una pregunta N veces con el muestreo recomendado por Qwen (temperatura 0,6, top_p 0,95, top_k 20) y muestra cada respuesta para juzgarla a mano. Probado contra un servidor falso local.
