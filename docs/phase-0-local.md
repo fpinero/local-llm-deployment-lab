@@ -328,3 +328,68 @@ The process list shows Ollama starting its own bundled `llama-server`:
 - **Thinking is not reasoning.** Asked the classic trick question (wash the car at a car
   wash 150 m away: walk or drive?), Qwen3-4B thought for 531 tokens and recommended walking.
   Fluent formatting hides weak reasoning in small models.
+
+## Step 10: a small reasoning evaluation (the car wash question)
+
+Run by the user in guided mode on 2026-10-22. `scripts/ask.py` repeats a question N times
+with Qwen's recommended sampling for thinking mode (temperature 0.6, top_p 0.95, top_k 20)
+and prints every final answer, so a human can judge them. Thinking stays on.
+
+```bash
+llama-server -hf Qwen/Qwen3-8B-GGUF:Q4_K_M -c 8192 -np 1 --port 8080 --api-key-file .secrets/llama-api-key
+python3 scripts/ask.py --key-file .secrets/llama-api-key --runs 5
+```
+
+The question: *"I have to wash the car; the car wash is 150 meters from home. Would you
+recommend going by car or on foot?"* The correct answer is by car: the car is what needs
+washing.
+
+### Results
+
+| Model | Correct | Output tokens per answer | Time per answer |
+|---|---|---|---|
+| Qwen3-4B Q4_K_M (Ollama, 1 run) | 0/1 | 531 | 14 s |
+| Qwen3-8B Q4_K_M | 2/5 | 693 to 3,498 | 31 to 156 s |
+| Qwen3-8B Q8_0 | 0/5 to 1/5 (run 5 states driving is the only option, then calls it inefficient) | 1,017 to 2,960 | 52 to 150 s |
+
+### What the numbers teach
+
+- **One answer proves nothing; a rate does.** Run 1 of the Q4_K_M alone would suggest the 8B
+  reasons well; runs 2 or 5 alone would suggest it fails like the 4B. With 5 runs, the true
+  rate could still be anywhere between roughly 10% and 75%.
+- **Longer thinking helps but does not guarantee.** Both correct answers came from long
+  reasoning (3,498 and 1,946 tokens), the shortest runs failed, yet a 3,092-token run also
+  failed.
+- **Q4_K_M versus Q8_0 is not distinguishable with 5 runs.** The gap between 2/5 and 1/5 is
+  within chance. Quantization effects on quality are small compared to sampling noise here.
+- **Quality costs tokens, tokens cost time.** Up to 2.5 minutes per common-sense question on
+  this Mac, for a 40% hit rate.
+- **Same model, different paths.** Tiny numerical differences between quantizations change
+  token probabilities; one different token early in the reasoning sends the rest down a
+  different path.
+
+## Model storage
+
+The internal disk filled up quickly: llama.cpp caches downloads in `~/.cache/huggingface`
+and Ollama keeps its own copy in `~/.ollama/models`. The kept models now live on the
+external disk and are loaded with `-m` instead of `-hf`:
+
+```bash
+# Copy the real files, not the snapshot symlinks of the Hugging Face cache
+cp -L ~/.cache/huggingface/hub/models--Qwen--Qwen3-4B-GGUF/snapshots/*/Qwen3-4B-Q4_K_M.gguf /Volumes/Ext1Tb/models/
+# Verify: the SHA-256 must match the blob name in the cache
+shasum -a 256 /Volumes/Ext1Tb/models/Qwen3-4B-Q4_K_M.gguf
+# Run from the external disk
+llama-server -m /Volumes/Ext1Tb/models/Qwen3-4B-Q4_K_M.gguf -c 8192 --port 8080 --api-key-file .secrets/llama-api-key
+# Download new models straight to the external disk
+curl -L -o /Volumes/Ext1Tb/models/<file>.gguf https://huggingface.co/<org>/<repo>/resolve/main/<file>.gguf
+```
+
+Notes:
+
+- In the Hugging Face cache, `snapshots/` only holds symlinks to `blobs/`, whose names are
+  the SHA-256 of their content. `cp` without `-L` would copy a dangling link.
+- The GGUF is memory-mapped: once loaded, inference does not read the USB disk again unless
+  memory pressure evicts pages.
+- Freed space may not show up immediately in `df` while an APFS (Time Machine) local
+  snapshot still references the deleted blocks. macOS releases it on its own.

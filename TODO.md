@@ -11,7 +11,7 @@ Cola de trabajo del lab. Solo tareas pendientes. Al completar y verificar una ta
 ## Fase 0: local en el Mac
 
 - [ ] (Opcional) Comprobar si la primera petición tras 10 minutos de inactividad tiene un prefill más lento (hipótesis: la GPU baja su frecuencia en reposo).
-- [ ] Hacer la pregunta del lavadero a Qwen3-8B (Q4_K_M y Q8_0) y comparar con el 4B.
+- [ ] Repetir la pregunta del lavadero con Qwen3-4B (5 intentos con `ask.py`) como control frente al 8B.
 - [ ] (Opcional) Medir en Ollama el efecto de `OLLAMA_KV_CACHE_TYPE=q8_0` en memoria y velocidad.
 - [ ] Probar Qwen3-4B con el razonamiento activado y medir cuántos tokens de "thinking" añade.
 - [ ] (Opcional) Convertir y cuantizar un modelo pequeño con `convert_hf_to_gguf.py` y `llama-quantize`.

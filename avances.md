@@ -2,6 +2,17 @@
 
 Cuaderno de bitácora del lab. Orden cronológico inverso (lo más reciente arriba). Las entradas existentes no se modifican.
 
+## 2026-10-22: fase 0, evaluación de razonamiento y almacenamiento externo (modo guiado)
+
+- Creado `scripts/ask.py`: repite una pregunta N veces con el muestreo recomendado por Qwen (temperatura 0,6, top_p 0,95, top_k 20) y muestra cada respuesta para juzgarla a mano. Probado contra un servidor falso local.
+- Pregunta trampa del lavadero (la respuesta correcta es ir en coche), 5 intentos con razonamiento activado:
+  - Qwen3-8B Q4_K_M: 2/5 aciertos, de 693 a 3.498 tokens y de 31 a 156 s por respuesta.
+  - Qwen3-8B Q8_0: de 0/5 a 1/5 (el intento 5 admite que conducir es la única opción, pero lo llama ineficiente).
+- Lecciones: una respuesta no demuestra nada; razonar más ayuda pero no garantiza; con 5 intentos Q4_K_M y Q8_0 son indistinguibles.
+- El disco interno llegó al 98% (12 GiB libres). El 4B y el 8B Q4_K_M se copiaron con `cp -L` a `/Volumes/Ext1Tb/models` (hash SHA-256 verificado) y se borraron las cachés de Hugging Face y de Ollama. A partir de ahora los modelos se cargan con `-m` desde el disco externo.
+- Limpieza adicional de Docker hecha por el usuario (`docker builder prune -a` y `docker image prune -a --filter until=168h`): `Docker.raw` pasó de 53 GB a 12 GB. Disco interno: 32 GiB libres. Parte del espacio sigue retenido por una instantánea local de Time Machine.
+- Detalle completo en `docs/phase-0-local.md`, paso 10 y sección "Model storage".
+
 ## 2026-10-22: fase 0, Ollama frente a llama.cpp (modo guiado)
 
 - Instalado Ollama 0.40.8 con Homebrew y descargado el mismo GGUF (`hf.co/Qwen/Qwen3-4B-GGUF:Q4_K_M`, mismo hash SHA-256 que la caché de llama.cpp).
