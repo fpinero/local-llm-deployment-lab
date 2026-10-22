@@ -17,13 +17,14 @@ Cola de trabajo del lab. Solo tareas pendientes. Al completar y verificar una ta
 
 ## Fase 1: Kaggle 2x T4
 
-- [ ] Notebook con GPU T4 x2: `nvidia-smi` y tiempo de arranque en frío.
-- [ ] Servir Qwen3.8-27B UD-Q4_K_M con Ollama.
-- [ ] Servir el mismo GGUF con `llama-server` (CUDA) y observar el reparto por capas en `nvidia-smi`.
-- [ ] Comparar `--split-mode layer` frente a `--split-mode row`.
-- [ ] Ejecutar los benchmarks y contrastar con las cifras del vídeo (16 tok/s, 325 tok/s, 92 s).
-- [ ] Exponer `llama-server` con Quick Tunnel y repetir en las T4 la prueba streaming frente a no streaming (`bench.py --no-stream --no-cache`).
-- [ ] Confirmar en las T4 que Ollama retiene las cabeceras hasta el primer token (medido en el Mac con la 0.40.8) y que llama-server no.
+Guía en `docs/phase-1-kaggle-t4.md`.
+
+- [ ] (Opcional) Crear un Dataset privado de Kaggle con el GGUF para adjuntarlo sin descargar (la descarga cuesta ~4 min por sesión).
+- [ ] (Opcional) Medir `--split-mode row` para completar la comparación con `layer` y `tensor`.
+- [ ] (Opcional) Subir `-c` por encima de 32k y medir cuánta caché KV cabe en la VRAM libre (~12 GiB).
+- [ ] (Opcional) Pregunta del lavadero al 27B con `ask.py` (5 intentos) para compararlo con el 4B y el 8B.
+- [ ] (Opcional) Medir el umbral exacto (~30 s) en el que el túnel libera las cabeceras, con prompts de entre 20 y 40 s de prefill.
+- [ ] (Opcional, si la cuota lo permite) Servir el mismo GGUF con Ollama y confirmar en las T4 que retiene las cabeceras hasta el primer token (medido en el Mac con la 0.40.8) y que llama-server no.
 - [ ] (Opcional) vLLM con tensor parallel 2 en un modelo que quepa en fp16.
 
 ## Fase 2: Kaggle TPU v5e-8
