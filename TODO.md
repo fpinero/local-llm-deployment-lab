@@ -6,12 +6,13 @@ Cola de trabajo del lab. Solo tareas pendientes. Al completar y verificar una ta
 
 - [ ] Crear cuenta de Kaggle, verificar el teléfono y anotar la cuota semanal real de GPU y TPU (Settings).
 - [ ] Comprobar si la cuenta necesita verificación de identidad (Persona) para usar TPU.
-- [ ] Instalar `ollama` con Homebrew y comprobar `cloudflared --version`.
+- [ ] Crear un pequeño conjunto de preguntas de evaluación (empezando por la trampa del lavadero) para comparar modelos en todas las fases.
 
 ## Fase 0: local en el Mac
 
 - [ ] (Opcional) Comprobar si la primera petición tras 10 minutos de inactividad tiene un prefill más lento (hipótesis: la GPU baja su frecuencia en reposo).
-- [ ] Servir el mismo modelo con Ollama y comparar con llama.cpp.
+- [ ] Hacer la pregunta del lavadero a Qwen3-8B (Q4_K_M y Q8_0) y comparar con el 4B.
+- [ ] (Opcional) Medir en Ollama el efecto de `OLLAMA_KV_CACHE_TYPE=q8_0` en memoria y velocidad.
 - [ ] Probar Qwen3-4B con el razonamiento activado y medir cuántos tokens de "thinking" añade.
 - [ ] (Opcional) Convertir y cuantizar un modelo pequeño con `convert_hf_to_gguf.py` y `llama-quantize`.
 - [ ] (Opcional) Probar el túnel desde fuera de casa (móvil con datos) para medir la latencia real de red.
@@ -24,7 +25,7 @@ Cola de trabajo del lab. Solo tareas pendientes. Al completar y verificar una ta
 - [ ] Comparar `--split-mode layer` frente a `--split-mode row`.
 - [ ] Ejecutar los benchmarks y contrastar con las cifras del vídeo (16 tok/s, 325 tok/s, 92 s).
 - [ ] Exponer `llama-server` con Quick Tunnel y repetir en las T4 la prueba streaming frente a no streaming (`bench.py --no-stream --no-cache`).
-- [ ] Repetir la prueba contra Ollama: ¿envía las cabeceras al instante en streaming o espera al primer token? Esto decide si los tutoriales del vídeo cortan a los 100 s.
+- [ ] Confirmar en las T4 que Ollama retiene las cabeceras hasta el primer token (medido en el Mac con la 0.40.8) y que llama-server no.
 - [ ] (Opcional) vLLM con tensor parallel 2 en un modelo que quepa en fp16.
 
 ## Fase 2: Kaggle TPU v5e-8

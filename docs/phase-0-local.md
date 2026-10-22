@@ -260,3 +260,71 @@ Quick Tunnel opens a single connection (`ha-connections:1`), here to the Madrid 
   arrived. On HTTP errors it prints how many seconds it took to fail.
 - Close the tunnel (`Ctrl+C`) as soon as the experiment ends. The URL is gone for good and the
   next run gets a new one.
+
+## Step 9: the same model through Ollama
+
+Run by the user in guided mode on 2026-10-22, with Ollama 0.40.8 (Homebrew).
+
+```bash
+brew install ollama
+OLLAMA_CONTEXT_LENGTH=32768 ollama serve                       # Terminal 1, port 11434
+ollama pull hf.co/Qwen/Qwen3-4B-GGUF:Q4_K_M                     # same GGUF as llama.cpp
+ollama run hf.co/Qwen/Qwen3-4B-GGUF:Q4_K_M --verbose           # chat with stats, /bye to exit
+ollama ps                                                      # what is loaded, where, how big
+python3 scripts/bench.py --base-url http://localhost:11434/v1 --model hf.co/Qwen/Qwen3-4B-GGUF:Q4_K_M --reasoning-effort none --prompt short
+python3 scripts/bench.py --base-url http://localhost:11434/v1 --model hf.co/Qwen/Qwen3-4B-GGUF:Q4_K_M --reasoning-effort none --prompt long --max-tokens 200
+```
+
+The tunnel test was done locally on purpose: Ollama has no authentication, so the lab rules
+forbid exposing it, and step 8 showed that the 524 depends only on when the headers arrive,
+which can be measured on localhost.
+
+### Ollama runs llama-server inside
+
+The process list shows Ollama starting its own bundled `llama-server`:
+
+```
+.../libexec/lib/ollama/llama-server --model ~/.ollama/models/blobs/sha256-7485fe6f11af...
+    -c 40960 -np 1 --no-jinja --chat-template chatml --flash-attn auto
+    -b 512 -ub 512 --context-shift --keep 4
+```
+
+- The blob hash is the same file llama.cpp downloaded to `~/.cache/huggingface`, stored a
+  second time in `~/.ollama/models` (content-addressed blobs plus manifests).
+- Ollama renders the chat template itself (Go template layer) and passes plain text.
+- `--context-shift --keep 4`: when the context fills up, old tokens are dropped silently
+  instead of returning an error.
+- The context is 40,960, not the requested 32,768: the `params` layer published in the Qwen
+  repository sets `num_ctx: 40960` and model parameters take precedence over
+  `OLLAMA_CONTEXT_LENGTH`, which is only the default for models without one.
+- The same layer sets Qwen's recommended sampling (temperature 0.6, top_p 0.95, top_k 20,
+  presence_penalty 1.5). `ollama run` uses them; the OpenAI-compatible endpoint used
+  temperature 1.0 and top_p 1.0, so the same model behaves differently depending on the API.
+- `ollama ps` reported 8.8 GB, 100% GPU: 2.5 GB of weights plus about 6 GB of KV cache for
+  40,960 tokens. Ollama measured the GPU budget at 11.8 GiB of the 16 GB.
+- The model is unloaded after 5 minutes idle (`OLLAMA_KEEP_ALIVE`); the next request paid
+  3.5 s of reload.
+- Ollama enables its cloud features by default (`-cloud` models run on ollama.com, not
+  locally). `OLLAMA_NO_CLOUD=1` disables them.
+
+### Results
+
+| Engine | Decode | Long prompt prefill | Long prompt TTFT | Headers received (long, streaming) |
+|---|---|---|---|---|
+| llama-server | 39.1 tok/s | 146 to 148 tok/s | 205 to 208 s | immediately |
+| Ollama | 40.0 tok/s | 148.3 tok/s | 205 s | **205 s, together with the first token** |
+
+### What the numbers teach
+
+- **Same engine, same speed.** Ollama adds no measurable overhead to decode or prefill.
+- **Ollama holds the HTTP headers until the first token, even when streaming.** Behind a
+  Quick Tunnel a 205 s prefill would get a 524 at 100 s, while llama-server passed. This is
+  the concrete cause of the 524 errors in the viral T4 tutorials, which use Ollama.
+- **What Ollama costs is control:** no authentication, context and sampling decided by model
+  parameters and by the API used, silent context shift, automatic unloading and a duplicate
+  copy of every model. What it gives: easy multi-model management, automatic GPU/CPU split
+  and many ready-made integrations. Good for personal desktop use; llama-server (or vLLM)
+  for serving.
+- **Thinking is not reasoning.** Asked the classic trick question (wash the car at a car
+  wash 150 m away: walk or drive?), Qwen3-4B thought for 531 tokens and recommended walking.
+  Fluent formatting hides weak reasoning in small models.

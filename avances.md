@@ -2,6 +2,20 @@
 
 Cuaderno de bitácora del lab. Orden cronológico inverso (lo más reciente arriba). Las entradas existentes no se modifican.
 
+## 2026-10-22: fase 0, Ollama frente a llama.cpp (modo guiado)
+
+- Instalado Ollama 0.40.8 con Homebrew y descargado el mismo GGUF (`hf.co/Qwen/Qwen3-4B-GGUF:Q4_K_M`, mismo hash SHA-256 que la caché de llama.cpp).
+- Hallazgo: Ollama 0.40 arranca internamente su propio `llama-server` (`-c 40960 -np 1 --context-shift --keep 4 -b 512`). El contexto queda en 40.960 porque los parámetros publicados por Qwen tienen prioridad sobre `OLLAMA_CONTEXT_LENGTH`.
+- `ollama ps`: 8,8 GB en 100% GPU (2,5 GB de pesos y ~6 GB de caché KV). Presupuesto de GPU medido por Ollama: 11,8 GiB.
+- Velocidad idéntica a llama-server: decode 40 tok/s y prefill del prompt largo 148,3 tok/s.
+- Prueba de cabeceras (en local, sin túnel, porque Ollama no tiene autenticación): Ollama envía las cabeceras a los 204,97 s, junto con el primer token, incluso en streaming. Tras un Quick Tunnel daría 524. Es la causa concreta de los cortes de los tutoriales del vídeo.
+- El muestreo cambia según la API: `ollama run` usa los valores recomendados por Qwen (temperatura 0,6) y el endpoint OpenAI usa temperatura 1,0.
+- Correcciones registradas: Ollama 0.40.8 sí devuelve `timings` en la API OpenAI, y el contexto no siguió `OLLAMA_CONTEXT_LENGTH`.
+- Prueba de razonamiento: con la pregunta trampa del lavadero, Qwen3-4B recomienda ir andando tras 531 tokens de razonamiento.
+- `scripts/bench.py`: nueva opción `--reasoning-effort` (Ollama la necesita para desactivar el thinking).
+- Conclusión: Ollama no penaliza la velocidad sino el control. Para servir modelos en el lab se usará llama-server.
+- Detalle completo en `docs/phase-0-local.md`, paso 9.
+
 ## 2026-10-22: fase 0, servidor local expuesto con Cloudflare Quick Tunnel (modo guiado)
 
 - Qwen3-4B Q4_K_M expuesto con `cloudflared tunnel --url http://localhost:8080` (cloudflared 2026.10.0, una conexión QUIC a Madrid).

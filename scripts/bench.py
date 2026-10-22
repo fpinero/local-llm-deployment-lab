@@ -71,6 +71,9 @@ def run(args):
     if args.no_think:
         # Qwen3 chat templates honor this flag to skip the thinking block.
         payload["chat_template_kwargs"] = {"enable_thinking": False}
+    if args.reasoning_effort:
+        # OpenAI-style control, used by Ollama ("none" disables thinking) and hosted APIs.
+        payload["reasoning_effort"] = args.reasoning_effort
 
     req = urllib.request.Request(
         args.base_url.rstrip("/") + "/chat/completions",
@@ -131,7 +134,8 @@ def main():
     p.add_argument("--prompt", choices=["short", "long"], default="short")
     p.add_argument("--long-tokens", type=int, default=30000, help="approximate size of the long prompt")
     p.add_argument("--max-tokens", type=int, default=500)
-    p.add_argument("--no-think", action="store_true", help="disable Qwen3 thinking")
+    p.add_argument("--no-think", action="store_true", help="disable Qwen3 thinking (llama.cpp)")
+    p.add_argument("--reasoning-effort", help="send reasoning_effort, e.g. none for Ollama")
     p.add_argument("--no-stream", action="store_true", help="wait for the full response instead of streaming")
     p.add_argument("--no-cache", action="store_true", help="ask llama.cpp not to reuse a cached prompt prefix")
     p.add_argument("--timeout", type=float, default=600)

@@ -75,7 +75,7 @@ lab's job is to measure them, not to trust them.
 | Tool or service | Role in the lab | Notes |
 |---|---|---|
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) | Inference engine for GGUF models. `llama-server` exposes an OpenAI-compatible API; `llama-bench` measures prefill and decode | Runs on Apple Metal and on CUDA (T4). `brew install llama.cpp` |
-| [Ollama](https://ollama.com) | Friendly wrapper around llama.cpp: downloads, model management, API | It is what the viral tutorials use. No authentication by default. `brew install ollama` |
+| [Ollama](https://ollama.com) | Friendly wrapper around llama.cpp: downloads, model management, API | It is what the viral tutorials use. No authentication. Version 0.40 runs a bundled `llama-server` inside and holds HTTP headers until the first token (see phase 0, step 9). `brew install ollama` |
 | [vLLM](https://docs.vllm.ai) | High-throughput engine (PagedAttention, batching, tensor parallelism) | No Apple Silicon backend. On TPU it runs through [tpu-inference](https://github.com/vllm-project/tpu-inference) |
 | [Kaggle](https://www.kaggle.com/docs/notebooks) | Free notebooks with accelerators: "GPU T4 x2" and "TPU VM v5e-8" | Phone verification. Check your exact weekly quota in Settings |
 | Cloudflare Quick Tunnel (`cloudflared`) | Public `trycloudflare.com` URL for a server inside the notebook | No account needed. Already installed on this Mac |
