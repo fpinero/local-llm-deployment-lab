@@ -16,3 +16,6 @@ __pycache__/
 
 # Local secrets (API keys for test servers)
 .secrets/
+
+# IDE
+.idea/

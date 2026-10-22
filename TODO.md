@@ -14,7 +14,7 @@ Cola de trabajo del lab. Solo tareas pendientes. Al completar y verificar una ta
 - [ ] Servir el mismo modelo con Ollama y comparar con llama.cpp.
 - [ ] Probar Qwen3-4B con el razonamiento activado y medir cuántos tokens de "thinking" añade.
 - [ ] (Opcional) Convertir y cuantizar un modelo pequeño con `convert_hf_to_gguf.py` y `llama-quantize`.
-- [ ] Exponer el servidor local con un Quick Tunnel y probarlo desde fuera.
+- [ ] (Opcional) Probar el túnel desde fuera de casa (móvil con datos) para medir la latencia real de red.
 
 ## Fase 1: Kaggle 2x T4
 
@@ -23,7 +23,8 @@ Cola de trabajo del lab. Solo tareas pendientes. Al completar y verificar una ta
 - [ ] Servir el mismo GGUF con `llama-server` (CUDA) y observar el reparto por capas en `nvidia-smi`.
 - [ ] Comparar `--split-mode layer` frente a `--split-mode row`.
 - [ ] Ejecutar los benchmarks y contrastar con las cifras del vídeo (16 tok/s, 325 tok/s, 92 s).
-- [ ] Exponer `llama-server` con Quick Tunnel, provocar un 524 a propósito y comprobar si el streaming sobrevive.
+- [ ] Exponer `llama-server` con Quick Tunnel y repetir en las T4 la prueba streaming frente a no streaming (`bench.py --no-stream --no-cache`).
+- [ ] Repetir la prueba contra Ollama: ¿envía las cabeceras al instante en streaming o espera al primer token? Esto decide si los tutoriales del vídeo cortan a los 100 s.
 - [ ] (Opcional) vLLM con tensor parallel 2 en un modelo que quepa en fp16.
 
 ## Fase 2: Kaggle TPU v5e-8

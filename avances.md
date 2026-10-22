@@ -2,6 +2,18 @@
 
 Cuaderno de bitácora del lab. Orden cronológico inverso (lo más reciente arriba). Las entradas existentes no se modifican.
 
+## 2026-10-22: fase 0, servidor local expuesto con Cloudflare Quick Tunnel (modo guiado)
+
+- Qwen3-4B Q4_K_M expuesto con `cloudflared tunnel --url http://localhost:8080` (cloudflared 2026.10.0, una conexión QUIC a Madrid).
+- Verificado: sin API key la URL pública responde 401.
+- Prompt corto por el túnel con streaming: funciona y los tokens llegan progresivamente (decode 41 tok/s). El TTFT de 1,6 s se debió sobre todo al servidor recién arrancado (prefill de 45 tok/s en la primera petición).
+- Prompt largo (30.363 tokens) con streaming: llega bien tras 205 s de prefill, sin 524.
+- El mismo prompt sin streaming y sin caché: HTTP 524. cloudflared registra `context canceled` y llama-server cancela la tarea a los ~124 s (74% del prefill).
+- Conclusión: el límite de 100 s afecta al tiempo hasta que empieza la respuesta. llama-server envía las cabeceras al instante en streaming, así que el corte solo aparece sin streaming. Queda por comprobar el comportamiento de Ollama (fase 1).
+- Corrección registrada: se esperaba que llama-server no detectara el corte en modo no streaming. Sí lo detecta, pero con unos 20-25 s de retraso.
+- `scripts/bench.py`: nuevas opciones `--no-stream` y `--no-cache`, línea `headers received` y tiempo transcurrido en los errores HTTP. Probado contra servidores falsos locales.
+- Detalle completo en `docs/phase-0-local.md`, paso 8.
+
 ## 2026-10-21: fase 0, Qwen3-8B en Q4_K_M y Q8_0 (modo guiado)
 
 - Primera sesión en modo guiado: el usuario ejecuta los comandos en el panel Terminal y Claude explica la herramienta, los parámetros y la salida.

@@ -8,6 +8,7 @@ and also prints the server-side `timings` object when the server is llama.cpp.
 Usage:
     python3 scripts/bench.py --base-url http://localhost:8080/v1 --key-file .secrets/llama-api-key
     python3 scripts/bench.py --prompt long --max-tokens 200
+    python3 scripts/bench.py --prompt long --no-stream --no-cache   # reproduce a proxy timeout
 """
 
 import argparse
@@ -54,12 +55,17 @@ def run(args):
         with open(args.key_file) as f:
             key = f.readline().strip()
 
+    stream = not args.no_stream
     payload = {
         "messages": build_messages(args.prompt, args.long_tokens),
         "max_tokens": args.max_tokens,
-        "stream": True,
-        "stream_options": {"include_usage": True},
+        "stream": stream,
     }
+    if stream:
+        payload["stream_options"] = {"include_usage": True}
+    if args.no_cache:
+        # llama.cpp specific: do not reuse the KV cache of a previous prompt.
+        payload["cache_prompt"] = False
     if args.model:
         payload["model"] = args.model
     if args.no_think:
@@ -77,7 +83,12 @@ def run(args):
     chunks = 0
     usage = timings = None
     with urllib.request.urlopen(req, timeout=args.timeout) as resp:
-        for raw in resp:
+        # urlopen returns as soon as the status line and headers arrive.
+        headers_at = time.perf_counter()
+        if not stream:
+            body = json.loads(resp.read())
+            usage, timings = body.get("usage"), body.get("timings")
+        for raw in resp if stream else []:
             line = raw.decode().strip()
             if not line.startswith("data:"):
                 continue
@@ -95,7 +106,8 @@ def run(args):
                     chunks += 1
     end = time.perf_counter()
 
-    print(f"prompt kind        : {args.prompt}")
+    print(f"prompt kind        : {args.prompt} ({'streaming' if stream else 'no streaming'})")
+    print(f"headers received   : {headers_at - start:.2f} s")
     if usage:
         print(f"prompt tokens      : {usage.get('prompt_tokens')}")
         print(f"completion tokens  : {usage.get('completion_tokens')}")
@@ -120,11 +132,15 @@ def main():
     p.add_argument("--long-tokens", type=int, default=30000, help="approximate size of the long prompt")
     p.add_argument("--max-tokens", type=int, default=500)
     p.add_argument("--no-think", action="store_true", help="disable Qwen3 thinking")
+    p.add_argument("--no-stream", action="store_true", help="wait for the full response instead of streaming")
+    p.add_argument("--no-cache", action="store_true", help="ask llama.cpp not to reuse a cached prompt prefix")
     p.add_argument("--timeout", type=float, default=600)
+    start = time.perf_counter()
     try:
         run(p.parse_args())
     except urllib.error.HTTPError as e:
-        sys.exit(f"HTTP {e.code}: {e.read().decode(errors='replace')[:500]}")
+        elapsed = time.perf_counter() - start
+        sys.exit(f"HTTP {e.code} after {elapsed:.1f} s: {e.read().decode(errors='replace')[:500]}")
 
 
 if __name__ == "__main__":

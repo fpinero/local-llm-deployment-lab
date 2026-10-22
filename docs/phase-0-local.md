@@ -204,3 +204,59 @@ size took about 60 s on the 4B.
   drops previous reasoning from the history, so that part of the cache is discarded.
 - llama.cpp log levels: `I` info, `W` warning (shown in red by the terminal), `E` error. The
   `control-looking token` warning is harmless metadata cleanup.
+
+## Step 8: expose the server with a Cloudflare Quick Tunnel
+
+Run by the user in guided mode on 2026-10-22, with Qwen3-4B Q4_K_M and `-c 32768` (the 30k
+prompt is known to take about 208 s to prefill, well beyond the 100 s limit).
+
+```bash
+# Terminal 1: the server
+llama-server -hf Qwen/Qwen3-4B-GGUF:Q4_K_M -c 32768 --port 8080 --api-key-file .secrets/llama-api-key
+
+# Terminal 2: the tunnel (anonymous, random *.trycloudflare.com URL, no account)
+cloudflared tunnel --url http://localhost:8080
+
+# Terminal 3: the client
+export TUNNEL=https://<random-words>.trycloudflare.com
+curl -s -o /dev/null -w "%{http_code}\n" $TUNNEL/v1/models     # expect 401
+python3 scripts/bench.py --base-url $TUNNEL/v1 --key-file .secrets/llama-api-key --prompt short --no-think
+python3 scripts/bench.py --base-url $TUNNEL/v1 --key-file .secrets/llama-api-key --prompt long --no-think --max-tokens 200
+python3 scripts/bench.py --base-url $TUNNEL/v1 --key-file .secrets/llama-api-key --prompt long --no-think --max-tokens 200 --no-stream --no-cache
+```
+
+`cloudflared` opens an outbound connection to Cloudflare (QUIC over UDP, HTTP/2 over TCP as
+fallback), so it works behind any NAT or firewall. That is why the Kaggle recipes use it: a
+notebook cannot accept inbound connections, but it can connect out. This version of the
+Quick Tunnel opens a single connection (`ha-connections:1`), here to the Madrid data center.
+
+### Results
+
+| Request through the tunnel | Outcome |
+|---|---|
+| `/v1/models` without API key | 401, the key protects the public URL |
+| Short prompt, streaming | OK. TTFT 1.6 s (1.4 s of it was the cold server, not the tunnel), decode 41 tok/s, tokens arrive progressively |
+| Long prompt (30,363 tokens), streaming | **OK after 205 s of prefill**, no 524 |
+| Long prompt, no streaming, no prompt cache | **HTTP 524**. `cloudflared` logs `context canceled`; llama-server cancels the task at about 124 s, 74% into the prefill |
+
+### What the experiment teaches
+
+- **The 100 s limit is about when the response starts, not how long it lasts.** With
+  streaming, llama-server sends the HTTP headers immediately and Cloudflare stops counting.
+  Without streaming nothing is sent until the full answer is ready, so Cloudflare cuts at
+  100 s with a 524.
+- **Whether a setup breaks depends on the client and the engine.** Does the client stream,
+  and does the engine send headers early? llama-server does. Ollama, used by the viral T4
+  tutorials, is still to be tested (phase 1).
+- **Streaming through a Quick Tunnel worked**, even though Cloudflare documents that Quick
+  Tunnels do not support Server-Sent Events. Observed behavior, not a guarantee.
+- **A cut request still burns compute.** The cancellation travels Cloudflare, then
+  `cloudflared`, then llama-server; the server kept prefilling for about 20 to 25 s after
+  the cut. On Kaggle that is quota.
+- **Warm up before measuring.** The first request after starting the server pays for Metal
+  kernel and graph preparation.
+- `bench.py` options added for this step: `--no-stream`, `--no-cache` (llama.cpp
+  `cache_prompt: false`) and a `headers received` line that shows when the response headers
+  arrived. On HTTP errors it prints how many seconds it took to fail.
+- Close the tunnel (`Ctrl+C`) as soon as the experiment ends. The URL is gone for good and the
+  next run gets a new one.

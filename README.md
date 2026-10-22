@@ -33,6 +33,11 @@ changes is the prefill speed: according to the video, a 30,000-token agent syste
 takes about 92 s to prefill on the T4s (8 s of margin before the 100 s cut) and about 3 s
 on the TPU. The tunnel limit is the same; the TPU simply stays far away from it.
 
+Phase 0 refined this further: the 100 s limit applies to the time until the response
+starts. With streaming, llama-server sends the HTTP headers immediately and a 205 s prefill
+went through the Quick Tunnel without a cut; the same request without streaming got a 524.
+See [docs/phase-0-local.md](docs/phase-0-local.md), step 8.
+
 ## Key concepts
 
 | Concept | Plain meaning | Why it matters here |
