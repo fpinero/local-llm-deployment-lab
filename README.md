@@ -33,6 +33,11 @@ changes is the prefill speed: according to the video, a 30,000-token agent syste
 takes about 92 s to prefill on the T4s (8 s of margin before the 100 s cut) and about 3 s
 on the TPU. The tunnel limit is the same; the TPU simply stays far away from it.
 
+Phase 0 refined this further: the 100 s limit applies to the time until the response
+starts. With streaming, llama-server sends the HTTP headers immediately and a 205 s prefill
+went through the Quick Tunnel without a cut; the same request without streaming got a 524.
+See [docs/phase-0-local.md](docs/phase-0-local.md), step 8.
+
 ## Key concepts
 
 | Concept | Plain meaning | Why it matters here |
@@ -70,7 +75,7 @@ lab's job is to measure them, not to trust them.
 | Tool or service | Role in the lab | Notes |
 |---|---|---|
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) | Inference engine for GGUF models. `llama-server` exposes an OpenAI-compatible API; `llama-bench` measures prefill and decode | Runs on Apple Metal and on CUDA (T4). `brew install llama.cpp` |
-| [Ollama](https://ollama.com) | Friendly wrapper around llama.cpp: downloads, model management, API | It is what the viral tutorials use. No authentication by default. `brew install ollama` |
+| [Ollama](https://ollama.com) | Friendly wrapper around llama.cpp: downloads, model management, API | It is what the viral tutorials use. No authentication. Version 0.40 runs a bundled `llama-server` inside and holds HTTP headers until the first token (see phase 0, step 9). `brew install ollama` |
 | [vLLM](https://docs.vllm.ai) | High-throughput engine (PagedAttention, batching, tensor parallelism) | No Apple Silicon backend. On TPU it runs through [tpu-inference](https://github.com/vllm-project/tpu-inference) |
 | [Kaggle](https://www.kaggle.com/docs/notebooks) | Free notebooks with accelerators: "GPU T4 x2" and "TPU VM v5e-8" | Phone verification. Check your exact weekly quota in Settings |
 | Cloudflare Quick Tunnel (`cloudflared`) | Public `trycloudflare.com` URL for a server inside the notebook | No account needed. Already installed on this Mac |
@@ -106,6 +111,7 @@ Each phase uses the same two benchmark prompts so results are comparable:
 ### Phase 0: truly local on the Mac
 
 Goal: learn the engines and the measurements for free, with no network in the loop.
+Step-by-step guide and measured results: [docs/phase-0-local.md](docs/phase-0-local.md).
 
 1. Run `llama-server` with Qwen3-4B Q4_K_M, protected by an API key, and query it with
    `curl` through the OpenAI-compatible `/v1/chat/completions` endpoint.
@@ -244,6 +250,13 @@ curl -s http://localhost:8080/v1/chat/completions -H "Authorization: Bearer chan
 
 Look at the `timings` object in the response: `prompt_per_second` is prefill speed,
 `predicted_per_second` is decode speed.
+
+For repeatable measurements against any OpenAI-compatible endpoint (this Mac, Kaggle or a
+hosted provider), use `scripts/bench.py` (standard library only):
+
+```bash
+python3 scripts/bench.py --base-url http://localhost:8080/v1 --key-file .secrets/llama-api-key --prompt long --no-think
+```
 
 ## Sources
 
