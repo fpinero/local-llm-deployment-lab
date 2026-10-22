@@ -2,6 +2,37 @@
 
 Cuaderno de bitácora del lab. Orden cronológico inverso (lo más reciente arriba). Las entradas existentes no se modifican.
 
+## 2026-10-22: publicación en GitHub
+
+- Revisión previa a la publicación: historial lineal de 8 commits, sin API key, URLs de túneles ni tokens en ningún commit, y `.secrets/` fuera del control de versiones.
+- Añadida licencia MIT y secciones de estado, estructura y licencia en el README.
+- Fases integradas en `main` con un merge `--no-ff` por fase. Las ramas `feature/*` se conservan.
+- Repositorio público `fpinero/local-llm-deployment-lab`, con `main` y las tres ramas de trabajo subidas.
+
+## 2026-10-22: fase 1, Qwen3.8-27B en 2x T4 con llama-server (modo guiado)
+
+- Instalado llama.cpp `b11819` (binario CUDA 12.8 y paquete `cudart`) en `/tmp/llama`. Las dos T4 aparecen con 14.806 MiB libres cada una.
+- Modelo `unsloth/Qwen3.8-27B-GGUF` UD-Q4_K_M descargado a `/tmp/models` en 4 min 2 s (~68 MB/s), con el SHA-256 verificado.
+- Servidor lanzado desde Python con `subprocess.Popen`, con la key leída del secreto de Kaggle y pasada por la variable `LLAMA_API_KEY`.
+- Incidente: el primer intento se canceló y el servidor quedó colgado al apagarse, lo que provocó un timeout del cliente de 15 min. Causa más probable: una interrupción de Jupyter que llegó al grupo de procesos. Solución: `start_new_session=True`. La compilación JIT del PTX ocurrió durante la primera carga (98 MB de caché), no en la petición. Corregida mi hipótesis inicial.
+- Incidente de secretos: `env | grep -i proxy` mostró `KAGGLE_DATA_PROXY_TOKEN`. Se recomienda borrar esa salida y filtrar siempre por nombres exactos.
+- Panel de Kaggle: el límite real de disco por sesión es de 57,6 GiB (no el 1,1 TB que muestra `df`), y la RAM es de 30 GiB.
+- Resultados con `-sm layer`: decode de 13,7 tok/s (contexto vacío) y 12,2 tok/s (32k). Prompt largo de 32.560 tokens: prefill de 453,5 tok/s y TTFT de 72,2 s (el vídeo estimaba ~325 tok/s y ~92 s). Cabeceras a los 0,42 s.
+- `nvidia-smi dmon`: en el prefill las dos GPU van al 100% a la vez (pipeline, limitado por el cálculo) y en el decode se turnan al ~50% (limitado por la memoria).
+- Resultados con `-sm tensor`: decode de 16,5-17,3 tok/s (+23%) y de 15,9 tok/s a 32k (+30%). Prefill de 429,6 tok/s (-5%), TTFT de 76,2 s. Memoria equilibrada (8.821 MiB por GPU). `sm` al ~97% en las dos GPU, pero solo un 23% más rápido por la comunicación por PCIe.
+- Conclusión: la afirmación del vídeo "capacidad de dos, velocidad de una" solo es cierta para el decode con reparto por capas. Con paralelismo tensorial la segunda T4 aporta velocidad, aunque lejos del doble.
+- Túnel desde el Mac (`cloudflared` 2026.10.0 en Kaggle, servidor con `-sm tensor`): 401 sin key, prompt de 32.560 tokens con TTFT de 77,1 s y decode de 15,7 tok/s en el cliente, sin 524. El túnel añade ~2-3 s por petición.
+- Hallazgo: a través del túnel, las cabeceras llegan con el primer token o hacia los ~30 s, lo que ocurra antes (0,41 s dentro del notebook frente a 31,97 s por el túnel con el prompt largo; con 6.544 tokens, cabeceras y TTFT coinciden en 17,24 s). Explica por qué llama-server en streaming nunca recibe el 524 y Ollama sí lo recibiría.
+- Detalle completo en `docs/phase-1-kaggle-t4.md`, pasos 3 a 9.
+
+## 2026-10-22: fase 1, preparación de Kaggle y reconocimiento (modo guiado)
+
+- Creada la rama `feature/phase-1-kaggle-t4` y la guía `docs/phase-1-kaggle-t4.md`.
+- Investigado: llama.cpp publica binarios Linux CUDA 12.8 y 13.4 (tag `b11819`) más un paquete `cudart` con las librerías CUDA. La T4 (sm_75) va solo como PTX, compilada por el driver en el primer uso. La versión actual tiene `-sm tensor` y escucha por defecto en el puerto 9931.
+- Cuenta de Kaggle lista: teléfono verificado, cuota de 30 h semanales de GPU (0 usadas), secreto `LLAMA_API_KEY` con la misma key que `.secrets/llama-api-key`.
+- Reconocimiento del notebook GPU T4 x2: driver 580.178.04 (CUDA 13.0), 2x T4 de 15.360 MiB, 4 CPU, 31 GiB de RAM sin swap, raíz overlay con 1,1 TB libres, Ubuntu 24.04.1. Opciones de persistencia: ninguna, variables y archivos, solo variables, solo archivos.
+- Decisiones: binario CUDA 12.8 (el driver 13.0 no puede compilar PTX del toolkit 13.4), modelo en `/tmp` y sin persistencia por ahora.
+
 ## 2026-10-22: fase 0, prueba de control con Qwen3-4B desde el disco externo (modo guiado)
 
 - Primer arranque con `-m /Volumes/Ext1Tb/models/Qwen3-4B-Q4_K_M.gguf`: funciona sin descarga ni caché.

@@ -7,6 +7,20 @@ decode, exposing an OpenAI-compatible endpoint, and wiring a coding agent to it.
 The lab avoids buying a GPU. It combines the local machine (Apple M1 Pro, 16 GB) for small
 models with Kaggle's free accelerators (2x NVIDIA T4 and TPU v5e-8) for a 27B model.
 
+## Status
+
+| Phase | Where | State |
+|---|---|---|
+| 0 | Apple M1 Pro, 16 GB | Done: [docs/phase-0-local.md](docs/phase-0-local.md) |
+| 1 | Kaggle 2x T4 | Done: [docs/phase-1-kaggle-t4.md](docs/phase-1-kaggle-t4.md) |
+| 2 | Kaggle TPU v5e-8 | Pending |
+| 3 | Comparison with a hosted provider | Pending |
+
+Repository layout: `docs/` holds one guide per phase with commands and measured results,
+`scripts/bench.py` measures TTFT, prefill and decode against any OpenAI-compatible endpoint,
+`scripts/ask.py` repeats a question to evaluate answers by hand. `TODO.md` and `avances.md`
+are the work queue and the progress log (in Spanish).
+
 ## Origin and framing
 
 This lab is inspired by the video
@@ -132,13 +146,15 @@ OpenAI-compatible API, the difference between Ollama and llama.cpp.
 ### Phase 1: Kaggle 2x T4 (replicating the viral recipe, critically)
 
 Goal: reproduce the setup the video criticizes and confirm its numbers.
+Step-by-step guide: [docs/phase-1-kaggle-t4.md](docs/phase-1-kaggle-t4.md).
 
 1. Create a notebook with Accelerator = GPU T4 x2 and Internet = ON. Run `nvidia-smi`.
 2. Serve Qwen3.8-27B UD-Q4_K_M with Ollama, as the tutorials do. Note the cold start time.
 3. Serve the same GGUF with `llama-server` (CUDA build), with `--api-key`. Check how the
    layers land on each card (`--split-mode layer`, the default) and watch `nvidia-smi` while
    it decodes: one card busy, the other idle.
-4. Try `--split-mode row` and compare. Does tensor-style splitting help on T4s?
+4. Try `--split-mode row` and `--split-mode tensor` (real tensor parallelism, available in
+   recent llama.cpp versions) and compare. Does splitting each layer help on T4s?
 5. Run both benchmark prompts. Compare with the video: about 16 tok/s decode, about 325 tok/s
    prefill, about 92 s TTFT for 30k tokens.
 6. Expose `llama-server` (never bare Ollama) with a Quick Tunnel. Then, deliberately:
@@ -238,6 +254,9 @@ Copy this table into `avances.md` (or a `results/` file) for every run:
 
 ### First command to try (phase 0, step 1)
 
+Note: recent llama.cpp versions listen on port 9931 by default. This lab always passes
+`--port 8080` explicitly; point `cloudflared --url` at whatever port the server uses.
+
 ```bash
 llama-server -hf Qwen/Qwen3-4B-GGUF:Q4_K_M --port 8080 --api-key change-me
 ```
@@ -266,3 +285,8 @@ python3 scripts/bench.py --base-url http://localhost:8080/v1 --key-file .secrets
 - [Cloudflare error 524](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-5xx-errors/error-524/) (100 s proxy read timeout, raised only on Enterprise).
 - [Kaggle acceptable use policy](https://www.kaggle.com/aup) and [Kaggle notebooks documentation](https://www.kaggle.com/docs/notebooks).
 - [llama.cpp](https://github.com/ggml-org/llama.cpp), [Ollama](https://ollama.com), [vLLM](https://docs.vllm.ai), [tpu-inference](https://github.com/vllm-project/tpu-inference).
+
+## License
+
+The code and documentation in this repository are released under the [MIT License](LICENSE).
+Model weights keep their own licenses (Qwen models: Apache-2.0).
