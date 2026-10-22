@@ -2,6 +2,13 @@
 
 Cuaderno de bitácora del lab. Orden cronológico inverso (lo más reciente arriba). Las entradas existentes no se modifican.
 
+## 2026-10-22: publicación en GitHub
+
+- Revisión previa a la publicación: historial lineal de 8 commits, sin API key, URLs de túneles ni tokens en ningún commit, y `.secrets/` fuera del control de versiones.
+- Añadida licencia MIT y secciones de estado, estructura y licencia en el README.
+- Fases integradas en `main` con un merge `--no-ff` por fase. Las ramas `feature/*` se conservan.
+- Repositorio público `fpinero/local-llm-deployment-lab`, con `main` y las tres ramas de trabajo subidas.
+
 ## 2026-10-22: fase 1, Qwen3.8-27B en 2x T4 con llama-server (modo guiado)
 
 - Instalado llama.cpp `b11819` (binario CUDA 12.8 y paquete `cudart`) en `/tmp/llama`. Las dos T4 aparecen con 14.806 MiB libres cada una.

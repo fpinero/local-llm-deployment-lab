@@ -41,6 +41,3 @@ Guía en `docs/phase-1-kaggle-t4.md`.
 - [ ] Rellenar la tabla de resultados y calcular el coste efectivo por millón de tokens.
 - [ ] Redactar las conclusiones en `avances.md`.
 
-## Publicación
-
-- [ ] Inicializar el repositorio Git y publicarlo en GitHub.

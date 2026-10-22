@@ -7,6 +7,20 @@ decode, exposing an OpenAI-compatible endpoint, and wiring a coding agent to it.
 The lab avoids buying a GPU. It combines the local machine (Apple M1 Pro, 16 GB) for small
 models with Kaggle's free accelerators (2x NVIDIA T4 and TPU v5e-8) for a 27B model.
 
+## Status
+
+| Phase | Where | State |
+|---|---|---|
+| 0 | Apple M1 Pro, 16 GB | Done: [docs/phase-0-local.md](docs/phase-0-local.md) |
+| 1 | Kaggle 2x T4 | Done: [docs/phase-1-kaggle-t4.md](docs/phase-1-kaggle-t4.md) |
+| 2 | Kaggle TPU v5e-8 | Pending |
+| 3 | Comparison with a hosted provider | Pending |
+
+Repository layout: `docs/` holds one guide per phase with commands and measured results,
+`scripts/bench.py` measures TTFT, prefill and decode against any OpenAI-compatible endpoint,
+`scripts/ask.py` repeats a question to evaluate answers by hand. `TODO.md` and `avances.md`
+are the work queue and the progress log (in Spanish).
+
 ## Origin and framing
 
 This lab is inspired by the video
@@ -271,3 +285,8 @@ python3 scripts/bench.py --base-url http://localhost:8080/v1 --key-file .secrets
 - [Cloudflare error 524](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-5xx-errors/error-524/) (100 s proxy read timeout, raised only on Enterprise).
 - [Kaggle acceptable use policy](https://www.kaggle.com/aup) and [Kaggle notebooks documentation](https://www.kaggle.com/docs/notebooks).
 - [llama.cpp](https://github.com/ggml-org/llama.cpp), [Ollama](https://ollama.com), [vLLM](https://docs.vllm.ai), [tpu-inference](https://github.com/vllm-project/tpu-inference).
+
+## License
+
+The code and documentation in this repository are released under the [MIT License](LICENSE).
+Model weights keep their own licenses (Qwen models: Apache-2.0).
