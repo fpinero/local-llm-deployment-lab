@@ -19,3 +19,6 @@ __pycache__/
 
 # IDE
 .idea/
+
+# OpenRouter API key (phase 3). Already covered by .secrets/, listed explicitly on purpose.
+.secrets/openrouter-api-key

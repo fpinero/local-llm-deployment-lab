@@ -2,6 +2,25 @@
 
 Cuaderno de bitácora del lab. Orden cronológico inverso (lo más reciente arriba). Las entradas existentes no se modifican.
 
+## 2026-10-26: fase 3, Qwen3.8-27B en OpenRouter (modo guiado)
+
+- Key normal con límite de 2 $ (la primera que se creó era una Management Key, que no puede llamar a modelos), guardada en `.secrets/openrouter-api-key` con permisos 600 y listada en `.gitignore`. Un primer 401 se debió a ejecutar el `curl` desde dentro de `.secrets/`.
+- Prompt corto: enrutado por defecto a DekaLLM (precisión desconocida) a 77,2 tok/s. Con proveedor fijado: DeepInfra bf16 60,6 tok/s, Chutes fp8 54,0 tok/s y Cerebras fp16 896,7 tok/s (1.266,6 tok/s con 1.414 tokens, porque las generaciones cortas infravaloran a los servidores muy rápidos).
+- Prompt largo de 32.615 tokens: TTFT de 3,55 s en DeepInfra (9.193 tok/s como mínimo) y de 2,45 s en Cerebras (13.331 tok/s), frente a 72,2 s en las 2x T4. La ventaja de Cerebras baja de unas 20x en el decode a 1,5x en el prefill: el decode depende de la memoria y el prefill del cálculo.
+- Caché de prefijo en DeepInfra: 32.144 de 32.596 tokens cacheados (múltiplo de 16, por bloques), TTFT del 20% y coste de entrada del 26% en la segunda vuelta. El decode del mismo proveedor bajó de ~62 a ~42 tok/s en pocos minutos por la carga.
+- Pregunta del lavadero en DeepInfra bf16: 5/5 con 177 a 416 tokens por respuesta, frente a 2/5 del 8B y 0/5 del 4B en el Mac. Con reservas: mezcla tamaño y generación, y la pregunta es famosa.
+- Gasto total: 0,054394 $ según la key, igual a la suma de los `cost` de cada respuesta. Toda la cuota semanal de las T4 equivale a unos pocos dólares de inferencia alojada.
+- Predicciones del usuario frente a resultados: decode 50 (77), Cerebras 120 (897 y 1.267), TTFT largo 5 y 3 s (3,55 y 2,45), caché al 50% (20% y 36%), lavadero 2/5 como máximo (5/5).
+- Tabla comparativa de todas las fases y conclusiones en `docs/phase-3-openrouter.md`. Fase 3 completada.
+
+## 2026-10-26: fase 3, preparación con OpenRouter
+
+- Commit de la fase 2 en `feature/phase-2-kaggle-tpu`, merge `--no-ff` en `main` (con aprobación) y push de `main` y de la rama. Creada `feature/phase-3-openrouter` desde `main`.
+- Catálogo público de OpenRouter (sin key): `qwen/qwen3.8-27b` lo sirven 20 proveedores en fp4, fp8, bf16 y fp16. Los precios de entrada van de 0,035 a 0,99 $/M y no hay variante gratuita. Elegidos DeepInfra (bf16), Cerebras (fp16, contexto de 65.536) y Chutes (fp8).
+- `bench.py` y `ask.py`: nueva opción `--provider` (fija el proveedor sin fallback) y muestran el proveedor, el coste (`usage.cost`), los tokens cacheados y los de razonamiento. `bench.py` cuenta también el campo `reasoning` del stream de OpenRouter para el TTFT. Probados contra un servidor falso local que imita el stream de OpenRouter.
+- Comprobado que `GET /api/v1/key` existe (401 sin key).
+- Guía `docs/phase-3-openrouter.md` con los pasos 0-7 y la estimación de gasto (menos de 0,25 $).
+
 ## 2026-10-25: fase 2 cerrada como inviable
 
 - Segundo intento en la franja de baja demanda de EE. UU.: domingo de 8:30 a 10:05 (hora española), unas 1,5 h en "Draft Session Starting" sin TPU. Se canceló a las 10:05.

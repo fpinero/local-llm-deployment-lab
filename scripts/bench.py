@@ -9,6 +9,8 @@ Usage:
     python3 scripts/bench.py --base-url http://localhost:8080/v1 --key-file .secrets/llama-api-key
     python3 scripts/bench.py --prompt long --max-tokens 200
     python3 scripts/bench.py --prompt long --no-stream --no-cache   # reproduce a proxy timeout
+    python3 scripts/bench.py --base-url https://openrouter.ai/api/v1 --key-file .secrets/openrouter-api-key \
+        --model qwen/qwen3.8-27b --provider deepinfra --nonce
 """
 
 import argparse
@@ -79,6 +81,9 @@ def run(args):
     if args.reasoning_effort:
         # OpenAI-style control, used by Ollama ("none" disables thinking) and hosted APIs.
         payload["reasoning_effort"] = args.reasoning_effort
+    if args.provider:
+        # OpenRouter routing: use only these providers, in this order, with no silent fallback.
+        payload["provider"] = {"order": args.provider.split(","), "allow_fallbacks": False}
 
     req = urllib.request.Request(
         args.base_url.rstrip("/") + "/chat/completions",
@@ -89,13 +94,13 @@ def run(args):
     start = time.perf_counter()
     first = None
     chunks = 0
-    usage = timings = None
+    usage = timings = provider = None
     with urllib.request.urlopen(req, timeout=args.timeout) as resp:
         # urlopen returns as soon as the status line and headers arrive.
         headers_at = time.perf_counter()
         if not stream:
             body = json.loads(resp.read())
-            usage, timings = body.get("usage"), body.get("timings")
+            usage, timings, provider = body.get("usage"), body.get("timings"), body.get("provider")
         for raw in resp if stream else []:
             line = raw.decode().strip()
             if not line.startswith("data:"):
@@ -106,9 +111,11 @@ def run(args):
             event = json.loads(data)
             usage = event.get("usage") or usage
             timings = event.get("timings") or timings
+            provider = event.get("provider") or provider
             for choice in event.get("choices", []):
                 delta = choice.get("delta", {})
-                if delta.get("content") or delta.get("reasoning_content"):
+                # llama.cpp streams thinking as reasoning_content, OpenRouter as reasoning.
+                if delta.get("content") or delta.get("reasoning_content") or delta.get("reasoning"):
                     if first is None:
                         first = time.perf_counter()
                     chunks += 1
@@ -116,9 +123,20 @@ def run(args):
 
     print(f"prompt kind        : {args.prompt} ({'streaming' if stream else 'no streaming'})")
     print(f"headers received   : {headers_at - start:.2f} s")
+    if provider:
+        print(f"provider           : {provider}")
     if usage:
         print(f"prompt tokens      : {usage.get('prompt_tokens')}")
+        cached = (usage.get("prompt_tokens_details") or {}).get("cached_tokens")
+        if cached:
+            print(f"cached tokens      : {cached}")
         print(f"completion tokens  : {usage.get('completion_tokens')}")
+        reasoning = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens")
+        if reasoning:
+            print(f"reasoning tokens   : {reasoning}")
+        if usage.get("cost") is not None:
+            # OpenRouter reports what the request was charged, in US dollars.
+            print(f"cost               : ${usage['cost']:.6f}")
     if first is not None:
         print(f"TTFT (client)      : {first - start:.2f} s")
         gen = usage.get("completion_tokens") if usage else chunks
@@ -147,6 +165,7 @@ def main():
     p.add_argument("--no-stream", action="store_true", help="wait for the full response instead of streaming")
     p.add_argument("--no-cache", action="store_true", help="ask llama.cpp not to reuse a cached prompt prefix")
     p.add_argument("--nonce", action="store_true", help="prepend a random line so no server can reuse a cached prefix")
+    p.add_argument("--provider", help="OpenRouter provider slugs, comma separated, e.g. deepinfra or cerebras")
     p.add_argument("--timeout", type=float, default=600)
     start = time.perf_counter()
     try:

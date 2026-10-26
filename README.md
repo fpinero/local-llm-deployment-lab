@@ -14,7 +14,7 @@ models with Kaggle's free accelerators (2x NVIDIA T4 and TPU v5e-8) for a 27B mo
 | 0 | Apple M1 Pro, 16 GB | Done: [docs/phase-0-local.md](docs/phase-0-local.md) |
 | 1 | Kaggle 2x T4 | Done: [docs/phase-1-kaggle-t4.md](docs/phase-1-kaggle-t4.md) |
 | 2 | Kaggle TPU v5e-8 | Closed as not viable: no TPU assigned in two attempts (about 7.5 hours of waiting). Review and prepared steps: [docs/phase-2-kaggle-tpu.md](docs/phase-2-kaggle-tpu.md) |
-| 3 | Comparison with a hosted provider | Pending |
+| 3 | Comparison with a hosted provider | Done: [docs/phase-3-openrouter.md](docs/phase-3-openrouter.md), with the comparison of all phases and the conclusions |
 
 Repository layout: `docs/` holds one guide per phase with commands and measured results,
 `scripts/bench.py` measures TTFT, prefill and decode against any OpenAI-compatible endpoint,
