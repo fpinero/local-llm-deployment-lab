@@ -13,7 +13,7 @@ models with Kaggle's free accelerators (2x NVIDIA T4 and TPU v5e-8) for a 27B mo
 |---|---|---|
 | 0 | Apple M1 Pro, 16 GB | Done: [docs/phase-0-local.md](docs/phase-0-local.md) |
 | 1 | Kaggle 2x T4 | Done: [docs/phase-1-kaggle-t4.md](docs/phase-1-kaggle-t4.md) |
-| 2 | Kaggle TPU v5e-8 | Pending |
+| 2 | Kaggle TPU v5e-8 | Closed as not viable: no TPU assigned in two attempts (about 7.5 hours of waiting). Review and prepared steps: [docs/phase-2-kaggle-tpu.md](docs/phase-2-kaggle-tpu.md) |
 | 3 | Comparison with a hosted provider | Pending |
 
 Repository layout: `docs/` holds one guide per phase with commands and measured results,
@@ -176,16 +176,23 @@ Goal: run the same model unquantized with tensor parallelism and see the differe
 
 1. Read the [kaggle-tpu-lab](https://github.com/ARahim3/kaggle-tpu-lab) code, mainly
    `qwen38-27b/kernel/` and `launch.py`. Understand what it downloads, patches and exposes.
-2. First run via the notebook route (Copy and Edit of the
-   [published notebook](https://www.kaggle.com/code/rahim3/qwen3-8-27b-bf16-on-kaggle-tpu-130-tok-s-api),
-   Accelerator = TPU VM v5e-8). No API token needed on your Mac.
-3. Second run via the terminal route (`python launch.py serve --keepalive-min 90`), which
-   needs the Kaggle API token. The `--keepalive-min` flag puts a hard stop on the session.
-4. Run both benchmark prompts. Compare with the repo figures: about 130 tok/s decode,
+2. Run it via the notebook route only, importing the repository notebook at the reviewed
+   commit (Accelerator = TPU VM v5e-8). The review found that the terminal route
+   (`launch.py`) publishes the endpoint URL and the API key to the public service ntfy.sh,
+   and that `launch.py stop` deletes the whole Kaggle kernel. Details in
+   [docs/phase-2-kaggle-tpu.md](docs/phase-2-kaggle-tpu.md).
+3. Run both benchmark prompts. Compare with the repo figures: about 130 tok/s decode,
    about 10,300 tok/s prefill, about 22 min from Run to URL.
-5. Connect a coding agent to the endpoint for one short, non-sensitive task. The README has
-   the exact environment variables for each agent.
-6. Stop the session (`python launch.py stop`).
+4. Connect a coding agent to the endpoint for one short, non-sensitive task. The recipe's
+   README has the exact environment variables for each agent.
+5. Stop the session manually from the notebook.
+
+**Availability warning.** The free TPU v5e-8 is far harder to get than the 2x T4. The
+first attempt (Saturday 2026-10-24) stayed at "Draft Session Starting" for 6 hours, and
+the second (Sunday 2026-10-25, 8:30 to 10:05 in Spain, the US off-peak window) for about
+1.5 hours. Neither got a TPU, while the T4 sessions of phase 1 started in seconds. The
+video does not mention this. In practice the TPU is an opportunistic option, not one to
+plan around, and this lab closed phase 2 as not viable.
 
 What you learn: vLLM, tensor parallelism, bf16 versus 4-bit, XLA compilation and warm-up,
 compile caches, serving a model with tool calling and reasoning parsers.
