@@ -35,6 +35,9 @@ def ask(args, key):
     }
     if args.model:
         payload["model"] = args.model
+    if args.provider:
+        # OpenRouter routing: use only these providers, in this order, with no silent fallback.
+        payload["provider"] = {"order": args.provider.split(","), "allow_fallbacks": False}
     req = urllib.request.Request(
         args.base_url.rstrip("/") + "/chat/completions",
         data=json.dumps(payload).encode(),
@@ -49,7 +52,8 @@ def main():
     p.add_argument("--base-url", default=os.environ.get("BENCH_BASE_URL", "http://localhost:8080/v1"))
     p.add_argument("--key", default=os.environ.get("BENCH_API_KEY", ""))
     p.add_argument("--key-file", help="file whose first line is the API key")
-    p.add_argument("--model", help="model name, required by some servers (Ollama, vLLM)")
+    p.add_argument("--model", help="model name, required by some servers (Ollama, vLLM, OpenRouter)")
+    p.add_argument("--provider", help="OpenRouter provider slugs, comma separated, e.g. deepinfra")
     p.add_argument("--question", default=CAR_WASH, help="defaults to the car wash trick question")
     p.add_argument("--runs", type=int, default=5)
     p.add_argument("--temperature", type=float, default=0.6)
@@ -77,8 +81,12 @@ def main():
         msg = body["choices"][0]["message"]
         answer = " ".join((msg.get("content") or "").split())
         reasoning = msg.get("reasoning_content") or msg.get("reasoning") or ""
-        tokens = body.get("usage", {}).get("completion_tokens")
-        print(f"--- run {i}/{args.runs}: {tokens} output tokens, {len(reasoning)} reasoning chars, {elapsed:.1f} s")
+        usage = body.get("usage", {})
+        tokens = usage.get("completion_tokens")
+        extra = f", ${usage['cost']:.6f}" if usage.get("cost") is not None else ""
+        if body.get("provider"):
+            extra += f", {body['provider']}"
+        print(f"--- run {i}/{args.runs}: {tokens} output tokens, {len(reasoning)} reasoning chars, {elapsed:.1f} s{extra}")
         # Models often put the recommendation at the end, so show both ends of long answers.
         if len(answer) > 2 * args.answer_chars:
             answer = answer[: args.answer_chars] + " [...] " + answer[-args.answer_chars :]

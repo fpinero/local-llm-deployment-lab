@@ -35,9 +35,11 @@ Guía en `docs/phase-2-kaggle-tpu.md`. Fase cerrada como inviable: no se asignó
 - [ ] (Opcional, si hay TPU) Ejecutar los benchmarks y contrastar con las cifras del repo (130 tok/s, 10.300 tok/s, 22 min).
 - [ ] (Opcional, si hay TPU) Conectar un agente de programación para una tarea corta y no sensible.
 
-## Fase 3: comparación
+## Fase 3: comparación con OpenRouter
 
-- [ ] Ejecutar los mismos prompts contra un proveedor alojado (OpenRouter).
-- [ ] Rellenar la tabla de resultados y calcular el coste efectivo por millón de tokens.
-- [ ] Redactar las conclusiones en `avances.md`.
+Guía en `docs/phase-3-openrouter.md`.
+
+- [ ] (Opcional) Conectar un agente de programación a OpenRouter con Qwen3.8-27B fijado a un proveedor y medir el coste real de una sesión corta.
+- [ ] (Opcional) Medir el decode de Cerebras con una generación larga (`--max-tokens 8000` y una pregunta abierta) para reducir el peso del tramo final del stream.
+- [ ] (Opcional) Repetir el decode de DeepInfra a otras horas para ver cuánto varía con la carga.
 
