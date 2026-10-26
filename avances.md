@@ -2,6 +2,41 @@
 
 Cuaderno de bitácora del lab. Orden cronológico inverso (lo más reciente arriba). Las entradas existentes no se modifican.
 
+## 2026-10-25: fase 2 cerrada como inviable
+
+- Segundo intento en la franja de baja demanda de EE. UU.: domingo de 8:30 a 10:05 (hora española), unas 1,5 h en "Draft Session Starting" sin TPU. Se canceló a las 10:05.
+- Total: ~7,5 h de espera en dos intentos, a horas distintas, sin ninguna máquina asignada. Las 2x T4 de la fase 1 se asignaron en segundos.
+- Decisión del usuario: dar la fase 2 por inviable. Las cifras de la receta (130 tok/s, 10.300 tok/s de prefill, 22 min) quedan sin verificar.
+- Documentado en `docs/phase-2-kaggle-tpu.md` (estado y tabla de intentos), en el README (estado de la fase y aviso) y en `TODO.md` (tareas de la fase 2 pasadas a opcionales).
+- Lo que sí deja la fase: la revisión de seguridad de kaggle-tpu-lab, la guía preparada hasta el paso 3 y las mejoras de `bench.py` (`--nonce` y prefill estimado), que sirven para la fase 3.
+
+## 2026-10-24: fase 2, sesión TPU parada tras 6 horas sin máquina
+
+- Tras 6 horas en "Draft Session Starting" sin que se asignara una TPU, el usuario paró la sesión a mano. La espera no consume cuota.
+- Nota de disponibilidad añadida a `docs/phase-2-kaggle-tpu.md` (sección propia), al README (estado de la fase 2 y aviso en la hoja de ruta) y a `TODO.md`.
+- README: la hoja de ruta de la fase 2 ya no recomienda la vía de terminal ni `launch.py stop`, en línea con la revisión del código.
+- Lección: la TPU gratuita es más teórica que real como opción disponible. La T4 sigue siendo la vía fiable del lab.
+- Próximo paso: reintentar el 2026-10-25 entre las 8:00 y las 12:00 (hora española), cuando hay menos demanda en EE. UU.
+
+## 2026-10-24: fase 2, primer intento de sesión TPU (sin máquina)
+
+- Paso 0 completado: la cuota semanal de TPU es de 20 h y la verificación de identidad (Persona) está superada.
+- Pasos 1-3 completados: notebook importado desde el commit revisado, TPU VM v5e-8, Internet activado, los dos datasets adjuntos y la celda de configuración con la key del secreto.
+- La sesión pasó más de 4 horas en "Draft Session Starting" sin que se asignara una TPU. Kaggle no muestra la posición en la cola ni deja parar la sesión desde el notebook. Recargar la página no cambia nada. Cambiar el acelerador a None y volver a TPU reinicia el intento, pero lo deja en el mismo estado.
+- Efecto secundario: al cambiar el acelerador se guardó una versión privada del notebook (`nbconvert`, 9,7 s, sin ejecutar celdas). No contiene la key, porque la celda de configuración la lee del secreto y solo imprime `config written`.
+- Conclusión provisional: la disponibilidad es un coste que el vídeo no menciona. Las 2x T4 se asignaron en segundos; la v5e-8 gratuita no se pudo conseguir en una tarde (hora española, mañana en EE. UU.). Para el lab la TPU es una opción oportunista, no una opción con la que planificar.
+
+## 2026-10-24: fase 2, revisión de kaggle-tpu-lab y preparación
+
+- Creada la rama `feature/phase-2-kaggle-tpu` desde `main` y la guía `docs/phase-2-kaggle-tpu.md`.
+- Revisión del código de kaggle-tpu-lab (commit `9a31b8519a80`) antes de ejecutarlo. Hallazgos:
+  - La vía de terminal (`launch.py`) publica la URL y la API key en un tema aleatorio del servicio público ntfy.sh.
+  - `launch.py stop` borra el kernel entero.
+  - Las rutas de vLLM fuera de `/v1` (`/metrics`, `/docs`...) probablemente quedan sin autenticación tras el túnel.
+  - `cloudflared` y la caché XLA son binarios de terceros sin checksum.
+- Decisiones: usar solo la vía notebook, importando el `.ipynb` del commit revisado; poner nuestra key (secreto `LLAMA_API_KEY`) en `serve_config.json`; `keepalive_min` a 60.
+- `scripts/bench.py`: nueva opción `--nonce` (evita la caché de prefijo de cualquier servidor) y estimación del prefill desde el TTFT cuando el servidor no devuelve `timings` (vLLM). Probado contra un servidor falso local.
+
 ## 2026-10-22: publicación en GitHub
 
 - Revisión previa a la publicación: historial lineal de 8 commits, sin API key, URLs de túneles ni tokens en ningún commit, y `.secrets/` fuera del control de versiones.

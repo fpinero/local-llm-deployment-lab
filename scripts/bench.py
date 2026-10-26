@@ -14,6 +14,7 @@ Usage:
 import argparse
 import json
 import os
+import secrets
 import sys
 import time
 import urllib.error
@@ -56,8 +57,12 @@ def run(args):
             key = f.readline().strip()
 
     stream = not args.no_stream
+    messages = build_messages(args.prompt, args.long_tokens)
+    if args.nonce:
+        # A unique first line defeats prefix caching on any server (vLLM, hosted APIs).
+        messages[0]["content"] = f"Request id {secrets.token_hex(8)}.\n" + messages[0]["content"]
     payload = {
-        "messages": build_messages(args.prompt, args.long_tokens),
+        "messages": messages,
         "max_tokens": args.max_tokens,
         "stream": stream,
     }
@@ -123,6 +128,9 @@ def run(args):
     if timings:
         print(f"prefill (server)   : {timings.get('prompt_per_second', 0):.1f} tok/s")
         print(f"decode (server)    : {timings.get('predicted_per_second', 0):.1f} tok/s")
+    elif usage and first is not None and usage.get("prompt_tokens"):
+        # Servers without timings (vLLM, hosted APIs): upper bound, includes network time.
+        print(f"prefill (client)   : {usage['prompt_tokens'] / (first - start):.1f} tok/s (TTFT-based)")
 
 
 def main():
@@ -138,6 +146,7 @@ def main():
     p.add_argument("--reasoning-effort", help="send reasoning_effort, e.g. none for Ollama")
     p.add_argument("--no-stream", action="store_true", help="wait for the full response instead of streaming")
     p.add_argument("--no-cache", action="store_true", help="ask llama.cpp not to reuse a cached prompt prefix")
+    p.add_argument("--nonce", action="store_true", help="prepend a random line so no server can reuse a cached prefix")
     p.add_argument("--timeout", type=float, default=600)
     start = time.perf_counter()
     try:

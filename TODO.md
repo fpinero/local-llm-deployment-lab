@@ -29,11 +29,11 @@ Guía en `docs/phase-1-kaggle-t4.md`.
 
 ## Fase 2: Kaggle TPU v5e-8
 
-- [ ] Leer el código de kaggle-tpu-lab (`qwen38-27b/kernel/` y `launch.py`).
-- [ ] Primera ejecución por la vía notebook.
-- [ ] Segunda ejecución por terminal con `launch.py serve --keepalive-min 90`.
-- [ ] Ejecutar los benchmarks y contrastar con las cifras del repo (130 tok/s, 10.300 tok/s, 22 min).
-- [ ] Conectar un agente de programación para una tarea corta y no sensible.
+Guía en `docs/phase-2-kaggle-tpu.md`. Fase cerrada como inviable: no se asignó ninguna TPU en dos intentos (~7,5 h de espera). Lo que sigue solo tiene sentido si algún día se consigue una sesión.
+
+- [ ] (Opcional, si hay TPU) Lanzar el servidor (paso 4) y comprobar desde el Mac qué rutas responden sin key a través del túnel (`/metrics`, `/docs`, `/version`).
+- [ ] (Opcional, si hay TPU) Ejecutar los benchmarks y contrastar con las cifras del repo (130 tok/s, 10.300 tok/s, 22 min).
+- [ ] (Opcional, si hay TPU) Conectar un agente de programación para una tarea corta y no sensible.
 
 ## Fase 3: comparación
 
